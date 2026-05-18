@@ -1,0 +1,386 @@
+
+                <!DOCTYPE html>
+                <html lang="zh">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <meta name="color-scheme" content="light">
+                  <meta name="supported-color-schemes" content="light">
+                  <title>服务协议与隐私政策</title>
+                  <style>
+                    *,
+                    *::before,
+                    *::after {
+                      box-sizing: border-box;
+                      margin: 0;
+                    }
+                    .iframe-outer {
+                      position: fixed;
+                      top: 0;
+                      left: 0;
+                      bottom: 0;
+                      right: 0;
+                      display: flex;
+                      justify-content: center;
+                      background-color: #E0E0E0;
+                    }
+                    .iframe-wrapper {
+                      width: 100%;
+                      height: 100%;
+                      margin: 0 auto;
+                      transform-origin: center top;
+                      flex-shrink: 0;
+                    }
+                    #dynamicIframe {
+                      border: none;
+                      width: 100%;
+                      height: 100%;
+                    }
+                  </style>
+                  <script>
+                const width = 1920
+                const height = 1080
+                const resolutionRatio = width && height ? width / height : 1
+                const pageNameMap = {
+                  'registration_page': '用户注册页',
+    'service_agreement': '服务协议与隐私政策',
+    'registration_success': '注册结果反馈页',
+    'login_page': '用户登录页'
+                }
+                const allPageIds = ["registration_page","service_agreement","registration_success","login_page"]
+                const allFormatPageIdsMap = {"registration_page":"registration-page","service_agreement":"service-agreement","registration_success":"registration-success","login_page":"login-page"}
+                const IFRAME_MESSAGE_TYPE = {
+                  iframeNavigation: 'iframeNavigation',
+                }
+                const safeAddEventListener = function Tc(e,t,r,n=!1){e.removeEventListener(t,r,n),e.addEventListener(t,r,n)}
+                const processOnclick = (e,t,r)=>{if(r){const n=zw(t);if(n.methodName&&Rp(n.methodName,r))return;e.preventDefault(),e.stopPropagation();const s=n.args||[],i=(s==null?void 0:s.find(u=>u))||"";i&&jp(i)}}
+                const checkIframeMethod = (e,t)=>{try{return typeof t[e]=="function"||typeof t[e]=="function"}catch(r){return!1}}
+                const postIframeMessage = (targetPageId) => {
+                  window.parent.postMessage({
+                    type: IFRAME_MESSAGE_TYPE.iframeNavigation,
+                    targetPageId,
+                  })
+                }
+                const handleIframeLinkClick = (event) => {
+                  const dynamicIframe = document.querySelector('#dynamicIframe')
+                  if (!dynamicIframe?.contentWindow) {
+                    return
+                  }
+                  const link = event.target.closest('a')
+                  const target = event.target
+                  if (link) {
+                    const href = link.getAttribute('href')
+                    const onclick = link.getAttribute('onclick')
+                    if (href && href !== '#' && !href.startsWith('javascript:')) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const targetPageId = getKeyByValueObj(allFormatPageIdsMap, href)
+                      if (targetPageId) {
+                        postIframeMessage(targetPageId)
+                      }
+                      return
+                    }
+                    if (onclick) {
+                      processOnclick(event, onclick, iframe.contentWindow, allFormatPageIdsMap)
+                    } else {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }
+                    return
+                  }
+                  const onclick = target.getAttribute('onclick')
+                  if (onclick) {
+                    processOnclick(event, onclick, iframe.contentWindow, allFormatPageIdsMap)
+                  }
+                }
+                function stringExt(link) {
+                  let s = String(link || '')
+                  s = (s.split('#')[0] || '')
+                  s = (s.split('?')[0] || '')
+                  s = s.trim()
+                  s = s.split('/').filter(Boolean).pop() || ''
+                  const lower = s.toLowerCase()
+                  if (lower.endsWith('.html') || lower.endsWith('.php') || lower.endsWith('.aspx')) {
+                    s = s.slice(0, s.lastIndexOf('.'))
+                  }
+                  return s
+                }
+                function formatHref(href) {
+                  if (!href) {
+                    return ''
+                  }
+                  try {
+                    const url = new URL(href, window.location.href)
+                    const pathname = url.pathname || ''
+                    return stringExt(pathname)
+                  } catch {
+                    return stringExt(href)
+                  }
+                }
+                function getKeyByValueObj(obj, value) {
+                  const newValue = formatHref(value)
+                  const keyFind = Object.keys(obj).find(k => k === newValue)
+                  if (keyFind) {
+                    return keyFind
+                  }
+                  return Object.keys(obj).find(k => obj[k] === newValue)
+                }
+                function setIframeSize(w, h) {
+                  const currentContainerRadio = w / h
+                  let widthValue = w
+                  let heightValue = h
+                  let zoom = 1
+                  if (currentContainerRadio > resolutionRatio) {
+                    widthValue = h * resolutionRatio
+                    heightValue = h
+                  } else {
+                    widthValue = w
+                    heightValue = w / resolutionRatio
+                  }
+                  zoom = width ? widthValue / width : 1
+                  return {
+                    width: widthValue / zoom + 'px',
+                    height: heightValue / zoom + 'px',
+                    zoom,
+                  }
+                }
+                function adjustIframeSize() {
+                  const iframeWrapper = document.querySelector(".iframe-wrapper")
+                  const { width, height, zoom } = setIframeSize(window.innerWidth, window.innerHeight)
+                  iframeWrapper.style.height = height
+                  iframeWrapper.style.width = width
+                  iframeWrapper.style.transform = 'scale(' + zoom + ')'
+                }
+                function sanitizeFilename(name) {
+                  return name.replace(/[\/:*?"<>|]/g, '_')
+                }
+                function handlePostMessage(event) {
+                  if (!event.data) {
+                    return
+                  }
+                  const { type, targetPageId } = event.data
+                  const targetPageName = pageNameMap[targetPageId]
+                  if (type === "iframeNavigation" && targetPageId && targetPageName) {
+                    window.location.href = targetPageName + '.html'
+                  }
+                }
+                function setupIframeEvents() {
+                  const iframe = document.getElementById('dynamicIframe')
+                  if (iframe && iframe.contentWindow && iframe.contentWindow.document) {
+                    safeAddEventListener(iframe.contentWindow.document, 'click', handleIframeLinkClick, true)
+                  } else {
+                    setTimeout(setupIframeEvents, 100)
+                  }
+                }
+                window.addEventListener('message', handlePostMessage)
+                window.onload = function() {
+                  adjustIframeSize()
+                  setupIframeEvents()
+                }
+                window.onresize = adjustIframeSize
+                window.onunload = () => {
+                  window.removeEventListener('message', handlePostMessage)
+                }
+              </script>
+                </head>
+                <body>
+                  <div class="iframe-outer">
+                    <div class="iframe-wrapper">
+                      <iframe id="dynamicIframe" srcdoc='<html data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="14" data-source-line-end="25" lang="en"><head data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="15" data-source-line-end="20"><script>(function(){
+      function stringExt(link) {
+        let s = String(link || &#39;&#39;)
+        s = (s.split(&#39;#&#39;)[0] || &#39;&#39;)
+        s = (s.split(&#39;?&#39;)[0] || &#39;&#39;)
+        s = s.trim()
+        s = s.split(&#39;/&#39;).filter(Boolean).pop() || &#39;&#39;
+        const lower = s.toLowerCase()
+        if (lower.endsWith(&#39;.html&#39;) || lower.endsWith(&#39;.php&#39;) || lower.endsWith(&#39;.aspx&#39;)) {
+          s = s.slice(0, s.lastIndexOf(&#39;.&#39;))
+        }
+        return s
+      }
+      function formatHref(href) {
+        if (!href) {
+          return &#39;&#39;
+        }
+        try {
+          const url = new URL(href, window.location.href)
+          const pathname = url.pathname || &#39;&#39;
+          return stringExt(pathname)
+        } catch {
+          return stringExt(href)
+        }
+      }
+      function getKeyByValueObj(obj, value) {
+        const newValue = formatHref(value)
+        const keyFind = Object.keys(obj).find(k => k === newValue)
+        if (keyFind) {
+          return keyFind
+        }
+        return Object.keys(obj).find(k => obj[k] === newValue)
+      }
+      function emit(to, source){
+        try {
+          if (window.parent) {
+            const allFormatPageIdsMap = {"registration_page":"registration-page","service_agreement":"service-agreement","registration_success":"registration-success","login_page":"login-page"}
+            const IFRAME_MESSAGE_TYPE = {
+              iframeNavigation: &#39;iframeNavigation&#39;,
+            }
+            const targetPageId = getKeyByValueObj(allFormatPageIdsMap, String(to || &#39;&#39;))
+            if (targetPageId) {
+              window.parent.postMessage({
+                type: IFRAME_MESSAGE_TYPE.iframeNavigation,
+                targetPageId,
+              }, &#39;*&#39;)
+            }
+          }
+        } catch(e) {}
+      }
+      try{
+        if (&#39;navigation&#39; in window &amp;&amp; window.navigation &amp;&amp; typeof window.navigation.addEventListener===&#39;function&#39;){
+          window.navigation.addEventListener(&#39;navigate&#39;, function(e){
+            try{
+              var url = (e.destination &amp;&amp; e.destination.url) || &#39;&#39;;
+              if (e.canIntercept &amp;&amp; typeof e.intercept===&#39;function&#39;){ e.intercept({ handler:function(){} }) }
+              else if (e.preventDefault){ e.preventDefault() }
+              emit(url)
+            }catch(_){}
+          })
+        }
+      }catch(_){}
+    })();</script><meta name="supported-color-schemes" content="light"><meta name="color-scheme" content="light"><style>
+      :root, html, body { color-scheme: light; }
+      html { forced-color-adjust: none; }
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Built with Astro">
+    <title data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="19" data-source-line-end="19">服务协议与隐私政策</title>
+  <style>.animate-in[data-astro-cid-3qlrnpww]{animation-timing-function:cubic-bezier(.4,0,.2,1)}body:before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background-image:url("data:image/svg+xml,%3Csvg width=&#39;60&#39; height=&#39;60&#39; viewBox=&#39;0 0 60 60&#39; xmlns=&#39;http://www.w3.org/2000/svg&#39;%3E%3Cg fill=&#39;none&#39; fill-rule=&#39;evenodd&#39;%3E%3Cg fill=&#39;%236366f1&#39; fill-opacity=&#39;0.03&#39;%3E%3Cpath d=&#39;M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z&#39;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;z-index:-1}
+[data-v-70231707] .scroll-area{height:100%}.animate-bounce[data-v-70231707]{animation:bounce-70231707 2s infinite}@keyframes bounce-70231707{0%,to{transform:translateY(0)}50%{transform:translateY(4px)}}.page-theme-orange{--background: 240 10% 4%;--foreground: 0 0% 98%;--card: 240 10% 7%;--card-foreground: 0 0% 98%;--primary: 24 100% 55%;--primary-foreground: 0 0% 100%;--primary-hover: 24 100% 50%;--accent: 24 100% 55%;--accent-foreground: 0 0% 100%;--border: 240 5% 15%;--input: 240 5% 15%;--ring: 24 100% 55%;--muted: 240 5% 12%;--muted-foreground: 240 5% 65%;--gradient-bg: none}.page-theme-orange ::-webkit-scrollbar-thumb{background-color:hsl(var(--primary) / .3)}.page-theme-orange ::-webkit-scrollbar-thumb:hover{background-color:hsl(var(--primary) / .5)}
+</style>
+<link rel="stylesheet" href="./assets/html/128124/login-page.C9W6H5Zx.css"><script src="./assets/static/uxbot/25_6/holder.js"></script></head>
+  <body data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="21" data-source-line-end="24">
+    
+  <div data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="15" data-source-line-end="58" class="min-h-screen flex flex-col items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8 overflow-y-auto dark page-theme-orange" data-astro-cid-3qlrnpww="">
+    <div data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="16" data-source-line-end="57" class="w-full max-w-md space-y-8 flex flex-col items-center" data-astro-cid-3qlrnpww="">
+      <!-- App Identity / Logo Area -->
+      <div data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="18" data-source-line-end="44" class="text-center space-y-2" data-astro-cid-3qlrnpww="">
+        <div data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="19" data-source-line-end="35" class="flex justify-center mb-6" data-astro-cid-3qlrnpww="">
+          <div data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="20" data-source-line-end="34" class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300" data-astro-cid-3qlrnpww="">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-astro-cid-3qlrnpww="">
+              <path data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="32" data-source-line-end="32" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" data-astro-cid-3qlrnpww=""></path>
+            </svg>
+          </div>
+        </div>
+        <h1 data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="36" data-source-line-end="38" class="text-page-title text-foreground" data-astro-cid-3qlrnpww="">
+          服务协议与隐私政策
+        </h1>
+        <p class="text-caption max-w-xs mx-auto" data-astro-cid-3qlrnpww="">
+            请仔细阅读以下条款，了解我们如何保护您的数据和权益
+          </p>
+      </div>
+
+      <!-- Main Auth Card -->
+      <main data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="47" data-source-line-end="49" class="auth-card animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" data-astro-cid-3qlrnpww="">
+        
+  <style>astro-island,astro-slot,astro-static-slot{display:contents}</style><script>(()=>{var e=async t=>{await(await t())()};(self.Astro||(self.Astro={})).load=e;window.dispatchEvent(new Event("astro:load"));})();</script><script>(()=>{var A=Object.defineProperty;var g=(i,o,a)=>o in i?A(i,o,{enumerable:!0,configurable:!0,writable:!0,value:a}):i[o]=a;var d=(i,o,a)=>g(i,typeof o!="symbol"?o+"":o,a);{let i={0:t=>m(t),1:t=>a(t),2:t=>new RegExp(t),3:t=>new Date(t),4:t=>new Map(a(t)),5:t=>new Set(a(t)),6:t=>BigInt(t),7:t=>new URL(t),8:t=>new Uint8Array(t),9:t=>new Uint16Array(t),10:t=>new Uint32Array(t),11:t=>1/0*t},o=t=>{let[l,e]=t;return l in i?i[l](e):void 0},a=t=>t.map(o),m=t=>typeof t!="object"||t===null?t:Object.fromEntries(Object.entries(t).map(([l,e])=>[l,o(e)]));class y extends HTMLElement{constructor(){super(...arguments);d(this,"Component");d(this,"hydrator");d(this,"hydrate",async()=>{var b;if(!this.hydrator||!this.isConnected)return;let e=(b=this.parentElement)==null?void 0:b.closest("astro-island[ssr]");if(e){e.addEventListener("astro:hydrate",this.hydrate,{once:!0});return}let c=this.querySelectorAll("astro-slot"),n={},h=this.querySelectorAll("template[data-astro-template]");for(let r of h){let s=r.closest(this.tagName);s!=null&amp;&amp;s.isSameNode(this)&amp;&amp;(n[r.getAttribute("data-astro-template")||"default"]=r.innerHTML,r.remove())}for(let r of c){let s=r.closest(this.tagName);s!=null&amp;&amp;s.isSameNode(this)&amp;&amp;(n[r.getAttribute("name")||"default"]=r.innerHTML)}let p;try{p=this.hasAttribute("props")?m(JSON.parse(this.getAttribute("props"))):{}}catch(r){let s=this.getAttribute("component-url")||"<unknown>",v=this.getAttribute("component-export");throw v&amp;&amp;(s+=` (export ${v})`),console.error(`[hydrate] Error parsing props for component ${s}`,this.getAttribute("props"),r),r}let u;await this.hydrator(this)(this.Component,p,n,{client:this.getAttribute("client")}),this.removeAttribute("ssr"),this.dispatchEvent(new CustomEvent("astro:hydrate"))});d(this,"unmount",()=>{this.isConnected||this.dispatchEvent(new CustomEvent("astro:unmount"))})}disconnectedCallback(){document.removeEventListener("astro:after-swap",this.unmount),document.addEventListener("astro:after-swap",this.unmount,{once:!0})}connectedCallback(){if(!this.hasAttribute("await-children")||document.readyState==="interactive"||document.readyState==="complete")this.childrenConnectedCallback();else{let e=()=>{document.removeEventListener("DOMContentLoaded",e),c.disconnect(),this.childrenConnectedCallback()},c=new MutationObserver(()=>{var n;((n=this.lastChild)==null?void 0:n.nodeType)===Node.COMMENT_NODE&amp;&amp;this.lastChild.nodeValue==="astro:end"&amp;&amp;(this.lastChild.remove(),e())});c.observe(this,{childList:!0}),document.addEventListener("DOMContentLoaded",e)}}async childrenConnectedCallback(){let e=this.getAttribute("before-hydration-url");e&amp;&amp;await import(e),this.start()}async start(){let e=JSON.parse(this.getAttribute("opts")),c=this.getAttribute("client");if(Astro[c]===void 0){window.addEventListener(`astro:${c}`,()=>this.start(),{once:!0});return}try{await Astro[c](async()=>{let n=this.getAttribute("renderer-url"),[h,{default:p}]=await Promise.all([import(this.getAttribute("component-url")),n?import(n):()=>()=>{}]),u=this.getAttribute("component-export")||"default";if(!u.includes("."))this.Component=h[u];else{this.Component=h;for(let f of u.split("."))this.Component=this.Component[f]}return this.hydrator=p,this.hydrate},e,this)}catch(n){console.error(`[astro-island] Error hydrating ${this.getAttribute("component-url")}`,n)}}attributeChangedCallback(){this.hydrate()}}d(y,"observedAttributes",["props"]),customElements.get("astro-island")||customElements.define("astro-island",y)}})();</script><astro-island uid="13AN2n" prefix="s0" component-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/128124/AgreementContent.B8gNJgYE.js" component-export="default" renderer-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/128124/client.DONkftir.js" props="{}" ssr="" client="load" opts="{&amp;quot;name&amp;quot;:&amp;quot;AgreementContent&amp;quot;,&amp;quot;value&amp;quot;:true}" await-children=""><div class="flex flex-col h-full space-y-6" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="131" data-source-line-end="197" data-v-70231707=""><div dir="ltr" style="position:relative;--reka-scroll-area-corner-width:0px;--reka-scroll-area-corner-height:0px;" class="relative overflow-hidden flex-1 pr-4 h-96" data-source-file="src/components/ui/scroll-area/ScrollArea.vue" data-source-line-start="20" data-source-line-end="26" data-v-70231707=""><!--[--><!--[--><div data-reka-scroll-area-viewport="" style="overflow-x:hidden;overflow-y:hidden;" class="h-full w-full rounded-[inherit]" data-source-file="src/components/ui/scroll-area/ScrollArea.vue" data-source-line-start="21" data-source-line-end="23" tabindex="0"><div style=""><!--[--><!--[--><div class="space-y-8 pr-4" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="138" data-source-line-end="151" data-v-70231707=""><!--[--><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">1. 服务条款</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">云端通行证是一个安全的身份验证和账户管理平台。通过使用本服务，您同意受本条款的约束。
+    
+我们致力于为用户提供安全、可靠的服务。用户在使用本服务时应遵守所有适用的法律法规，不得进行任何违法或侵害他人权益的行为。
+
+本服务的所有内容、功能和界面的知识产权均属于云端通行证或其内容提供者。未经明确授权，用户不得复制、修改、传播或商业使用本服务的任何部分。</p></div><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">2. 用户账户与安全</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">用户有责任维护其账户密码的机密性，并对所有在其账户下进行的活动负责。用户应立即通知我们任何未授权的账户使用情况。
+
+我们采用业界先进的加密技术保护用户数据。但是，互联网传输不是完全安全的，我们不能保证绝对的安全性。用户应自行采取措施保护其设备和账户安全。
+
+用户不得：
+• 与他人共享账户凭证
+• 尝试未授权访问系统
+• 进行任何形式的账户欺诈行为</p></div><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">3. 隐私保护政策</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">我们重视您的隐私。本隐私政策说明我们如何收集、使用、披露和保护您的个人信息。
+
+收集的信息类型：
+• 账户信息：姓名、邮箱、电话号码
+• 设备信息：IP地址、浏览器类型、操作系统
+• 使用数据：登录时间、访问的功能、交互模式
+
+信息使用：
+我们使用收集的信息来：
+• 提供和改进服务
+• 验证用户身份
+• 检测和防止欺诈
+• 发送重要通知
+• 遵守法律义务
+
+信息共享：
+我们不会向第三方出售您的个人信息。在以下情况下，我们可能会共享信息：
+• 获得您的明确同意
+• 法律要求或政府请求
+• 保护我们的权利和安全</p></div><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">4. 数据保留与删除</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">我们会根据法律要求和业务需要保留您的数据。您可以随时请求删除您的账户和相关数据。
+
+删除请求将在收到后的30天内处理。某些数据可能因法律或合规原因需要保留更长时间。
+
+删除您的账户将导致：
+• 无法访问您的账户和数据
+• 无法恢复已删除的信息
+• 终止所有相关服务</p></div><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">5. 免责声明</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">本服务按"现状"提供。我们不提供任何明示或暗示的保证，包括但不限于适销性、特定用途适用性或非侵权性的保证。
+
+在任何情况下，云端通行证及其员工、董事、代理人或供应商均不对任何间接、附带、特殊或后果性损害赔偿负责，即使已被告知此类损害的可能性。
+
+某些司法管辖区不允许排除或限制某些损害赔偿，因此上述限制可能不适用于您。</p></div><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">6. 条款修改</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">我们保留随时修改本条款和隐私政策的权利。修改后的条款将在发布时生效。继续使用本服务即表示您接受修改后的条款。
+
+我们会通过电子邮件或在服务中发布重要修改的通知。</p></div><div class="space-y-3" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="139" data-source-line-end="150" data-v-70231707=""><h3 class="text-item-title font-semibold text-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="144" data-source-line-end="146" data-v-70231707="">7. 联系我们</h3><p class="text-caption whitespace-pre-wrap leading-relaxed text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="147" data-source-line-end="149" data-v-70231707="">如果您对本条款或隐私政策有任何疑问，请通过以下方式联系我们：
+
+邮箱：privacy@cloudpass.example.com
+电话：400-800-8888
+地址：中国北京市朝阳区某街道1号
+
+我们将在收到您的咨询后的7个工作日内回复。</p></div><!--]--></div><!--]--><!--]--></div></div><style> /* Hide scrollbars cross-browser and enable momentum scroll for touch devices */ [data-reka-scroll-area-viewport] { scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; } [data-reka-scroll-area-viewport]::-webkit-scrollbar { display:none; } </style><!--]--><!----><!--v-if--><!--]--></div><div class="flex items-center justify-center gap-2 py-3 px-4 bg-muted/50 rounded-lg border border-border" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="155" data-source-line-end="163" data-v-70231707=""><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide text-muted-foreground animate-bounce lucide-chevron-down-icon lucide-chevron-down text-muted-foreground animate-bounce" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" data-v-70231707=""><path d="m6 9 6 6 6-6"></path></svg><p class="text-xs text-muted-foreground" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="160" data-source-line-end="162" data-v-70231707=""> 请向下滚动阅读完整协议 </p></div><!----><div class="flex gap-3 pt-4 border-t border-border" data-source-file="src/components/service-agreement/AgreementContent.vue" data-source-line-start="177" data-source-line-end="196" data-v-70231707=""><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 flex-1" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27" data-v-70231707=""><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide mr-2 lucide-arrow-left-icon lucide-arrow-left mr-2" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" data-v-70231707=""><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg> 返回 <!--]--></button><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 flex-1" disabled="" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27" data-v-70231707=""><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide mr-2 lucide-circle-check-icon lucide-circle-check mr-2" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" data-v-70231707=""><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg> 同意并继续 <!--]--></button></div></div><!--astro:end--></astro-island>
+
+      </main>
+
+      <!-- Global Footer for Auth Pages -->
+      <footer data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="52" data-source-line-end="56" class="text-center" data-astro-cid-3qlrnpww="">
+        <p data-source-file="src/layouts/AuthLayout.astro" data-source-line-start="53" data-source-line-end="55" class="text-caption" data-astro-cid-3qlrnpww="">
+          © 2026 中国平安互联网金融服务. 保留所有权利。
+        </p>
+      </footer>
+    </div>
+  </div>
+
+    <astro-island uid="Z1rXJ5e" prefix="s1" component-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/128124/sonner.PoqMNnNL.js" component-export="Toaster" renderer-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/128124/client.DONkftir.js" props="{}" ssr="" client="load" opts="{&amp;quot;name&amp;quot;:&amp;quot;Toaster&amp;quot;,&amp;quot;value&amp;quot;:true}" await-children=""><!--[--><!-- Remove item from normal navigation flow, only available via hotkey --><section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false"><!--[--><ol data-sonner-toaster="" data-sonner-theme="light" class="toaster group" dir="ltr" tabindex="-1" data-theme="light" data-rich-colors="false" data-y-position="bottom" data-x-position="right" style="--front-toast-height:0px;--width:356px;--gap:14px;--offset-top:24px;--offset-right:24px;--offset-bottom:24px;--offset-left:24px;--mobile-offset-top:16px;--mobile-offset-right:16px;--mobile-offset-bottom:16px;--mobile-offset-left:16px;" data-source-file="src/components/ui/sonner/Sonner.vue" data-source-line-start="9" data-source-line-end="22"><!--[--><!--]--></ol><!--]--></section><!--]--><!--astro:end--></astro-island>
+  <script>
+    const originalBack = window.history.back
+    const originalForward = window.history.forward
+    const originalGo = window.history.go
+    function isValidNavigation(){
+      if(!window.parent.history.state.back || !window.parent.history.state.back.startsWith(&#39;/designPage&#39;)){
+        return false
+      }
+      return true
+    }
+    window.history.back = function(...args) {
+      if(!isValidNavigation()){
+        return
+      }
+      return originalBack.apply(this, args);
+    };
+
+    window.history.forward = function(...args) {
+      if(!isValidNavigation()){
+        return
+      }
+      return originalForward.apply(this, args);
+    };
+
+    window.history.go = function(...args) {
+      if(!isValidNavigation()){
+        return
+      }
+      return originalGo.apply(this, args);
+    };
+  </script></body></html>'></iframe>
+                    </div>
+                  </div>
+
+                </body>
+                </html>
+            

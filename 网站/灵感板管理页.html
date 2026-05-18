@@ -1,0 +1,336 @@
+
+                <!DOCTYPE html>
+                <html lang="zh">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <meta name="color-scheme" content="light">
+                  <meta name="supported-color-schemes" content="light">
+                  <title>灵感板管理页</title>
+                  <style>
+                    *,
+                    *::before,
+                    *::after {
+                      box-sizing: border-box;
+                      margin: 0;
+                    }
+                    .iframe-outer {
+                      position: fixed;
+                      top: 0;
+                      left: 0;
+                      bottom: 0;
+                      right: 0;
+                      display: flex;
+                      justify-content: center;
+                      background-color: #E0E0E0;
+                    }
+                    .iframe-wrapper {
+                      width: 100%;
+                      height: 100%;
+                      margin: 0 auto;
+                      transform-origin: center top;
+                      flex-shrink: 0;
+                    }
+                    #dynamicIframe {
+                      border: none;
+                      width: 100%;
+                      height: 100%;
+                    }
+                  </style>
+                  <script>
+                const width = 1920
+                const height = 1080
+                const resolutionRatio = width && height ? width / height : 1
+                const pageNameMap = {
+                  'home_dashboard': '首页',
+    'category_gallery': '分区列表页',
+    'artwork_detail': '作品详情页',
+    'inspiration_board_manager': '灵感板管理页',
+    'management_dashboard': '管理后台首页',
+    'collection_editor': '作品集编辑器',
+    'bulk_upload_editor': '批量上传与参数编辑页',
+    'collection_preview': '作品集分享预览页',
+    'advanced_search_center': '高级搜索中心',
+    'search_results_list': '搜索结果列表',
+    'comparison_workbench': '作品对比工作台',
+    'comparison_export_preview': '对比结果导出预览'
+                }
+                const allPageIds = ["home_dashboard","category_gallery","artwork_detail","inspiration_board_manager","management_dashboard","collection_editor","bulk_upload_editor","collection_preview","advanced_search_center","search_results_list","comparison_workbench","comparison_export_preview"]
+                const allFormatPageIdsMap = {"home_dashboard":"home-dashboard","category_gallery":"category-gallery","artwork_detail":"artwork-detail","inspiration_board_manager":"inspiration-board-manager","management_dashboard":"management-dashboard","collection_editor":"collection-editor","bulk_upload_editor":"bulk-upload-editor","collection_preview":"collection-preview","advanced_search_center":"advanced-search-center","search_results_list":"search-results-list","comparison_workbench":"comparison-workbench","comparison_export_preview":"comparison-export-preview"}
+                const IFRAME_MESSAGE_TYPE = {
+                  iframeNavigation: 'iframeNavigation',
+                }
+                const safeAddEventListener = function Tc(e,t,r,n=!1){e.removeEventListener(t,r,n),e.addEventListener(t,r,n)}
+                const processOnclick = (e,t,r)=>{if(r){const n=zw(t);if(n.methodName&&Rp(n.methodName,r))return;e.preventDefault(),e.stopPropagation();const s=n.args||[],i=(s==null?void 0:s.find(u=>u))||"";i&&jp(i)}}
+                const checkIframeMethod = (e,t)=>{try{return typeof t[e]=="function"||typeof t[e]=="function"}catch(r){return!1}}
+                const postIframeMessage = (targetPageId) => {
+                  window.parent.postMessage({
+                    type: IFRAME_MESSAGE_TYPE.iframeNavigation,
+                    targetPageId,
+                  })
+                }
+                const handleIframeLinkClick = (event) => {
+                  const dynamicIframe = document.querySelector('#dynamicIframe')
+                  if (!dynamicIframe?.contentWindow) {
+                    return
+                  }
+                  const link = event.target.closest('a')
+                  const target = event.target
+                  if (link) {
+                    const href = link.getAttribute('href')
+                    const onclick = link.getAttribute('onclick')
+                    if (href && href !== '#' && !href.startsWith('javascript:')) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const targetPageId = getKeyByValueObj(allFormatPageIdsMap, href)
+                      if (targetPageId) {
+                        postIframeMessage(targetPageId)
+                      }
+                      return
+                    }
+                    if (onclick) {
+                      processOnclick(event, onclick, iframe.contentWindow, allFormatPageIdsMap)
+                    } else {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }
+                    return
+                  }
+                  const onclick = target.getAttribute('onclick')
+                  if (onclick) {
+                    processOnclick(event, onclick, iframe.contentWindow, allFormatPageIdsMap)
+                  }
+                }
+                function stringExt(link) {
+                  let s = String(link || '')
+                  s = (s.split('#')[0] || '')
+                  s = (s.split('?')[0] || '')
+                  s = s.trim()
+                  s = s.split('/').filter(Boolean).pop() || ''
+                  const lower = s.toLowerCase()
+                  if (lower.endsWith('.html') || lower.endsWith('.php') || lower.endsWith('.aspx')) {
+                    s = s.slice(0, s.lastIndexOf('.'))
+                  }
+                  return s
+                }
+                function formatHref(href) {
+                  if (!href) {
+                    return ''
+                  }
+                  try {
+                    const url = new URL(href, window.location.href)
+                    const pathname = url.pathname || ''
+                    return stringExt(pathname)
+                  } catch {
+                    return stringExt(href)
+                  }
+                }
+                function getKeyByValueObj(obj, value) {
+                  const newValue = formatHref(value)
+                  const keyFind = Object.keys(obj).find(k => k === newValue)
+                  if (keyFind) {
+                    return keyFind
+                  }
+                  return Object.keys(obj).find(k => obj[k] === newValue)
+                }
+                function setIframeSize(w, h) {
+                  const currentContainerRadio = w / h
+                  let widthValue = w
+                  let heightValue = h
+                  let zoom = 1
+                  if (currentContainerRadio > resolutionRatio) {
+                    widthValue = h * resolutionRatio
+                    heightValue = h
+                  } else {
+                    widthValue = w
+                    heightValue = w / resolutionRatio
+                  }
+                  zoom = width ? widthValue / width : 1
+                  return {
+                    width: widthValue / zoom + 'px',
+                    height: heightValue / zoom + 'px',
+                    zoom,
+                  }
+                }
+                function adjustIframeSize() {
+                  const iframeWrapper = document.querySelector(".iframe-wrapper")
+                  const { width, height, zoom } = setIframeSize(window.innerWidth, window.innerHeight)
+                  iframeWrapper.style.height = height
+                  iframeWrapper.style.width = width
+                  iframeWrapper.style.transform = 'scale(' + zoom + ')'
+                }
+                function sanitizeFilename(name) {
+                  return name.replace(/[\/:*?"<>|]/g, '_')
+                }
+                function handlePostMessage(event) {
+                  if (!event.data) {
+                    return
+                  }
+                  const { type, targetPageId } = event.data
+                  const targetPageName = pageNameMap[targetPageId]
+                  if (type === "iframeNavigation" && targetPageId && targetPageName) {
+                    window.location.href = targetPageName + '.html'
+                  }
+                }
+                function setupIframeEvents() {
+                  const iframe = document.getElementById('dynamicIframe')
+                  if (iframe && iframe.contentWindow && iframe.contentWindow.document) {
+                    safeAddEventListener(iframe.contentWindow.document, 'click', handleIframeLinkClick, true)
+                  } else {
+                    setTimeout(setupIframeEvents, 100)
+                  }
+                }
+                window.addEventListener('message', handlePostMessage)
+                window.onload = function() {
+                  adjustIframeSize()
+                  setupIframeEvents()
+                }
+                window.onresize = adjustIframeSize
+                window.onunload = () => {
+                  window.removeEventListener('message', handlePostMessage)
+                }
+              </script>
+                </head>
+                <body>
+                  <div class="iframe-outer">
+                    <div class="iframe-wrapper">
+                      <iframe id="dynamicIframe" srcdoc='<html data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="14" data-source-line-end="25" lang="en"><head data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="15" data-source-line-end="20"><script>(function(){
+      function stringExt(link) {
+        let s = String(link || &#39;&#39;)
+        s = (s.split(&#39;#&#39;)[0] || &#39;&#39;)
+        s = (s.split(&#39;?&#39;)[0] || &#39;&#39;)
+        s = s.trim()
+        s = s.split(&#39;/&#39;).filter(Boolean).pop() || &#39;&#39;
+        const lower = s.toLowerCase()
+        if (lower.endsWith(&#39;.html&#39;) || lower.endsWith(&#39;.php&#39;) || lower.endsWith(&#39;.aspx&#39;)) {
+          s = s.slice(0, s.lastIndexOf(&#39;.&#39;))
+        }
+        return s
+      }
+      function formatHref(href) {
+        if (!href) {
+          return &#39;&#39;
+        }
+        try {
+          const url = new URL(href, window.location.href)
+          const pathname = url.pathname || &#39;&#39;
+          return stringExt(pathname)
+        } catch {
+          return stringExt(href)
+        }
+      }
+      function getKeyByValueObj(obj, value) {
+        const newValue = formatHref(value)
+        const keyFind = Object.keys(obj).find(k => k === newValue)
+        if (keyFind) {
+          return keyFind
+        }
+        return Object.keys(obj).find(k => obj[k] === newValue)
+      }
+      function emit(to, source){
+        try {
+          if (window.parent) {
+            const allFormatPageIdsMap = {"home_dashboard":"home-dashboard","category_gallery":"category-gallery","artwork_detail":"artwork-detail","inspiration_board_manager":"inspiration-board-manager","management_dashboard":"management-dashboard","collection_editor":"collection-editor","bulk_upload_editor":"bulk-upload-editor","collection_preview":"collection-preview","advanced_search_center":"advanced-search-center","search_results_list":"search-results-list","comparison_workbench":"comparison-workbench","comparison_export_preview":"comparison-export-preview"}
+            const IFRAME_MESSAGE_TYPE = {
+              iframeNavigation: &#39;iframeNavigation&#39;,
+            }
+            const targetPageId = getKeyByValueObj(allFormatPageIdsMap, String(to || &#39;&#39;))
+            if (targetPageId) {
+              window.parent.postMessage({
+                type: IFRAME_MESSAGE_TYPE.iframeNavigation,
+                targetPageId,
+              }, &#39;*&#39;)
+            }
+          }
+        } catch(e) {}
+      }
+      try{
+        if (&#39;navigation&#39; in window &amp;&amp; window.navigation &amp;&amp; typeof window.navigation.addEventListener===&#39;function&#39;){
+          window.navigation.addEventListener(&#39;navigate&#39;, function(e){
+            try{
+              var url = (e.destination &amp;&amp; e.destination.url) || &#39;&#39;;
+              if (e.canIntercept &amp;&amp; typeof e.intercept===&#39;function&#39;){ e.intercept({ handler:function(){} }) }
+              else if (e.preventDefault){ e.preventDefault() }
+              emit(url)
+            }catch(_){}
+          })
+        }
+      }catch(_){}
+    })();</script><meta name="supported-color-schemes" content="light"><meta name="color-scheme" content="light"><style>
+      :root, html, body { color-scheme: light; }
+      html { forced-color-adjust: none; }
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="管理和组织您的摄影作品灵感板">
+    <title data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="19" data-source-line-end="19">灵感板管理 - PhotogSphere</title>
+  <link rel="stylesheet" href="./assets/html/119045/advanced-search-center.DcUmUpVz.css"><script src="./assets/static/uxbot/25_6/holder.js"></script></head>
+  <body data-source-file="src/layouts/BaseLayout.astro" data-source-line-start="21" data-source-line-end="24">
+    
+  <div data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="16" data-source-line-end="39" class="flex flex-col min-h-screen">
+    <style>astro-island,astro-slot,astro-static-slot{display:contents}</style><script>(()=>{var e=async t=>{await(await t())()};(self.Astro||(self.Astro={})).load=e;window.dispatchEvent(new Event("astro:load"));})();</script><script>(()=>{var A=Object.defineProperty;var g=(i,o,a)=>o in i?A(i,o,{enumerable:!0,configurable:!0,writable:!0,value:a}):i[o]=a;var d=(i,o,a)=>g(i,typeof o!="symbol"?o+"":o,a);{let i={0:t=>m(t),1:t=>a(t),2:t=>new RegExp(t),3:t=>new Date(t),4:t=>new Map(a(t)),5:t=>new Set(a(t)),6:t=>BigInt(t),7:t=>new URL(t),8:t=>new Uint8Array(t),9:t=>new Uint16Array(t),10:t=>new Uint32Array(t),11:t=>1/0*t},o=t=>{let[l,e]=t;return l in i?i[l](e):void 0},a=t=>t.map(o),m=t=>typeof t!="object"||t===null?t:Object.fromEntries(Object.entries(t).map(([l,e])=>[l,o(e)]));class y extends HTMLElement{constructor(){super(...arguments);d(this,"Component");d(this,"hydrator");d(this,"hydrate",async()=>{var b;if(!this.hydrator||!this.isConnected)return;let e=(b=this.parentElement)==null?void 0:b.closest("astro-island[ssr]");if(e){e.addEventListener("astro:hydrate",this.hydrate,{once:!0});return}let c=this.querySelectorAll("astro-slot"),n={},h=this.querySelectorAll("template[data-astro-template]");for(let r of h){let s=r.closest(this.tagName);s!=null&amp;&amp;s.isSameNode(this)&amp;&amp;(n[r.getAttribute("data-astro-template")||"default"]=r.innerHTML,r.remove())}for(let r of c){let s=r.closest(this.tagName);s!=null&amp;&amp;s.isSameNode(this)&amp;&amp;(n[r.getAttribute("name")||"default"]=r.innerHTML)}let p;try{p=this.hasAttribute("props")?m(JSON.parse(this.getAttribute("props"))):{}}catch(r){let s=this.getAttribute("component-url")||"<unknown>",v=this.getAttribute("component-export");throw v&amp;&amp;(s+=` (export ${v})`),console.error(`[hydrate] Error parsing props for component ${s}`,this.getAttribute("props"),r),r}let u;await this.hydrator(this)(this.Component,p,n,{client:this.getAttribute("client")}),this.removeAttribute("ssr"),this.dispatchEvent(new CustomEvent("astro:hydrate"))});d(this,"unmount",()=>{this.isConnected||this.dispatchEvent(new CustomEvent("astro:unmount"))})}disconnectedCallback(){document.removeEventListener("astro:after-swap",this.unmount),document.addEventListener("astro:after-swap",this.unmount,{once:!0})}connectedCallback(){if(!this.hasAttribute("await-children")||document.readyState==="interactive"||document.readyState==="complete")this.childrenConnectedCallback();else{let e=()=>{document.removeEventListener("DOMContentLoaded",e),c.disconnect(),this.childrenConnectedCallback()},c=new MutationObserver(()=>{var n;((n=this.lastChild)==null?void 0:n.nodeType)===Node.COMMENT_NODE&amp;&amp;this.lastChild.nodeValue==="astro:end"&amp;&amp;(this.lastChild.remove(),e())});c.observe(this,{childList:!0}),document.addEventListener("DOMContentLoaded",e)}}async childrenConnectedCallback(){let e=this.getAttribute("before-hydration-url");e&amp;&amp;await import(e),this.start()}async start(){let e=JSON.parse(this.getAttribute("opts")),c=this.getAttribute("client");if(Astro[c]===void 0){window.addEventListener(`astro:${c}`,()=>this.start(),{once:!0});return}try{await Astro[c](async()=>{let n=this.getAttribute("renderer-url"),[h,{default:p}]=await Promise.all([import(this.getAttribute("component-url")),n?import(n):()=>()=>{}]),u=this.getAttribute("component-export")||"default";if(!u.includes("."))this.Component=h[u];else{this.Component=h;for(let f of u.split("."))this.Component=this.Component[f]}return this.hydrator=p,this.hydrate},e,this)}catch(n){console.error(`[astro-island] Error hydrating ${this.getAttribute("component-url")}`,n)}}attributeChangedCallback(){this.hydrate()}}d(y,"observedAttributes",["props"]),customElements.get("astro-island")||customElements.define("astro-island",y)}})();</script><astro-island uid="Z14ceyM" prefix="s1" component-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/119045/CommonHeader.EtHfWzdc.js" component-export="default" renderer-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/119045/client.BSWFYnr5.js" props="{&amp;quot;currentPath&amp;quot;:[0,&amp;quot;/inspiration-board-manager.html&amp;quot;]}" ssr="" client="load" opts="{&amp;quot;name&amp;quot;:&amp;quot;CommonHeader&amp;quot;,&amp;quot;value&amp;quot;:true}" await-children=""><header class="sticky top-0 z-50 w-full h-[--header-height] border-b border-border bg-background/80 backdrop-blur-md" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="46" data-source-line-end="140"><div class="h-full px-4 md:px-8 flex items-center justify-between gap-4" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="49" data-source-line-end="139"><div class="flex items-center gap-2 cursor-pointer shrink-0" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="51" data-source-line-end="61"><div class="w-8 h-8 rounded bg-primary flex items-center justify-center" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="55" data-source-line-end="57"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide text-primary-foreground lucide-camera-icon lucide-camera text-primary-foreground" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"></path><circle cx="12" cy="13" r="3"></circle></svg></div><span class="text-xl font-bold tracking-tighter text-foreground hidden sm:block" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="58" data-source-line-end="60"> LENS<span class="text-primary" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="59" data-source-line-end="59">CRAFT</span></span></div><nav class="hidden lg:flex items-center gap-1" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="64" data-source-line-end="76"><!--[--><a href="./home-dashboard.html" class="px-4 py-2 text-sm font-medium transition-colors hover:text-primary text-muted-foreground" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="65" data-source-line-end="75">首页</a><a href="./category-gallery.html" class="px-4 py-2 text-sm font-medium transition-colors hover:text-primary text-muted-foreground" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="65" data-source-line-end="75">发现</a><a href="./advanced-search-center.html" class="px-4 py-2 text-sm font-medium transition-colors hover:text-primary text-muted-foreground" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="65" data-source-line-end="75">高级搜索</a><a href="./management-dashboard.html" class="px-4 py-2 text-sm font-medium transition-colors hover:text-primary text-muted-foreground" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="65" data-source-line-end="75">管理后台</a><!--]--></nav><div class="flex-1 max-w-md flex items-center gap-4" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="79" data-source-line-end="138"><div class="relative w-full hidden md:block" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="80" data-source-line-end="90"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground lucide-search-icon lucide-search absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg><input class="flex rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-foreground file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9 bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary w-full h-9" placeholder="搜索作品、摄影师或参数..." data-source-file="src/components/ui/input/Input.vue" data-source-line-start="23" data-source-line-end="23"></div><div class="flex items-center gap-3 shrink-0" data-source-file="src/components/common/CommonHeader.vue" data-source-line-start="92" data-source-line-end="137"><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-10 w-10 sm:hidden" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27"><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg><!--]--></button><!--[--><!--[--><!--[--><!--[--><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground outline-none relative h-9 w-9 rounded-full p-0" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27" id="reka-dropdown-menu-trigger-s1-0" type="button" aria-haspopup="menu" aria-expanded="false" data-state="closed"><!--[--><span class="inline-flex items-center justify-center font-normal text-foreground select-none shrink-0 bg-secondary overflow-hidden text-xs rounded-full h-9 w-9 border border-border" data-source-file="src/components/ui/avatar/Avatar.vue" data-source-line-start="19" data-source-line-end="21"><!--[--><!--[--><img role="img" src="https://spark-builder.s3.cn-north-1.amazonaws.com.cn/image/2026/4/13/f6951e3c-d75e-465f-b25e-870cd208a0ef.png" class="h-full w-full object-cover" alt="User" data-source-file="src/components/ui/avatar/AvatarImage.vue" data-source-line-start="9" data-source-line-end="11" style="display:none;"><span data-source-file="src/components/ui/avatar/AvatarFallback.vue" data-source-line-start="9" data-source-line-end="11"><!--[--><!--[-->LC<!--]--><!--]--></span><!--]--><!--]--></span><!--]--></button><!--v-if--><!--]--><!--]--><!--]--><!--]--></div></div></div></header><!--astro:end--></astro-island>
+    <main data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="18" data-source-line-end="20" class="flex-1">
+      
+  <main data-source-file="src/pages/inspiration-board-manager.astro" data-source-line-start="8" data-source-line-end="10" class="min-h-screen bg-background">
+    <astro-island uid="Z2mWfz3" prefix="s0" component-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/119045/InspirationBoardManager.DanvGysR.js" component-export="default" renderer-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/119045/client.BSWFYnr5.js" props="{}" ssr="" client="load" opts="{&amp;quot;name&amp;quot;:&amp;quot;InspirationBoardManager&amp;quot;,&amp;quot;value&amp;quot;:true}" await-children=""><div class="flex flex-col min-h-screen bg-background" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="93" data-source-line-end="180"><div class="page-body border-b border-border" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="95" data-source-line-end="104"><div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="96" data-source-line-end="103"><div data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="97" data-source-line-end="102"><h1 class="text-page-title mb-2" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="98" data-source-line-end="98">我的灵感板</h1><p class="text-caption text-muted-foreground" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="99" data-source-line-end="101"> 收集和组织您喜爱的摄影作品，按主题创建灵感板以便快速参考和学习 </p></div></div></div><div class="sticky top-[--header-height] z-40 bg-background/95 backdrop-blur-sm border-b border-border" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="107" data-source-line-end="124"><div class="page-body flex flex-col gap-4" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="108" data-source-line-end="123"><div class="flex items-center justify-between gap-4 -mx-5 px-5 md:-mx-8 md:px-8 overflow-x-auto" data-source-file="src/components/inspiration_board_manager/BoardTabs.vue" data-source-line-start="30" data-source-line-end="58"><div dir="ltr" data-orientation="horizontal" class="flex-1 min-w-0" data-source-file="src/components/ui/tabs/Tabs.vue" data-source-line-start="12" data-source-line-end="14"><!--[--><!--[--><div class="inline-flex items-center text-muted-foreground bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-0" data-source-file="src/components/ui/tabs/TabsList.vue" data-source-line-start="14" data-source-line-end="22" tabindex="-1" data-orientation="horizontal" dir="ltr" style="outline:none;" role="tablist" aria-orientation="horizontal"><!--[--><!--[--><!--[--><button class="inline-flex items-center justify-center text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-muted-foreground hover:text-foreground transition-colors px-4 py-3 font-medium whitespace-nowrap" data-source-file="src/components/ui/tabs/TabsTrigger.vue" data-source-line-start="16" data-source-line-end="26" data-reka-collection-item="" tabindex="-1" data-orientation="horizontal" data-active="" id="reka-tabs-s0-0-trigger-board-default" role="tab" type="button" aria-selected="true" aria-controls="reka-tabs-s0-0-content-board-default" data-state="active"><!--[--><span class="truncate" data-source-file="src/components/ui/tabs/TabsTrigger.vue" data-source-line-start="23" data-source-line-end="25"><!--[-->默认收藏夹<!--]--></span><!--]--></button><button class="inline-flex items-center justify-center text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-muted-foreground hover:text-foreground transition-colors px-4 py-3 font-medium whitespace-nowrap" data-source-file="src/components/ui/tabs/TabsTrigger.vue" data-source-line-start="16" data-source-line-end="26" data-reka-collection-item="" tabindex="-1" data-orientation="horizontal" id="reka-tabs-s0-0-trigger-board-sunset" role="tab" type="button" aria-selected="false" aria-controls="reka-tabs-s0-0-content-board-sunset" data-state="inactive"><!--[--><span class="truncate" data-source-file="src/components/ui/tabs/TabsTrigger.vue" data-source-line-start="23" data-source-line-end="25"><!--[-->日落色调参考<!--]--></span><!--]--></button><button class="inline-flex items-center justify-center text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-muted-foreground hover:text-foreground transition-colors px-4 py-3 font-medium whitespace-nowrap" data-source-file="src/components/ui/tabs/TabsTrigger.vue" data-source-line-start="16" data-source-line-end="26" data-reka-collection-item="" tabindex="-1" data-orientation="horizontal" id="reka-tabs-s0-0-trigger-board-street" role="tab" type="button" aria-selected="false" aria-controls="reka-tabs-s0-0-content-board-street" data-state="inactive"><!--[--><span class="truncate" data-source-file="src/components/ui/tabs/TabsTrigger.vue" data-source-line-start="23" data-source-line-end="25"><!--[-->街拍构图模仿<!--]--></span><!--]--></button><!--]--><!--]--><!--]--></div><!--]--><!--]--></div><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 shrink-0 h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10" title="新建灵感板" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27"><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><!--]--></button></div><div class="flex items-center justify-between gap-3 flex-wrap" data-source-file="src/components/inspiration_board_manager/BoardActionBar.vue" data-source-line-start="35" data-source-line-end="80"><div class="flex items-center gap-3" data-source-file="src/components/inspiration_board_manager/BoardActionBar.vue" data-source-line-start="36" data-source-line-end="41"><span class="tag-base whitespace-nowrap status-private" data-source-file="src/components/common/StatusBadge.vue" data-source-line-start="37" data-source-line-end="39">仅自己可见</span><span class="text-caption text-muted-foreground" data-source-file="src/components/inspiration_board_manager/BoardActionBar.vue" data-source-line-start="38" data-source-line-end="40"> 更新于 2025/3/20</span></div><div class="flex items-center gap-2" data-source-file="src/components/inspiration_board_manager/BoardActionBar.vue" data-source-line-start="43" data-source-line-end="79"><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 border bg-transparent hover:bg-accent rounded-md px-3 h-9 border-muted hover:border-primary/50 text-muted-foreground hover:text-primary" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27"><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide mr-2 lucide-download-icon lucide-download mr-2" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg> 导出 <!--]--></button><!--[--><!--[--><!--[--><!--[--><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 hover:bg-accent outline-none h-9 w-9 text-muted-foreground hover:text-foreground" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27" id="reka-dropdown-menu-trigger-s0-4" type="button" aria-haspopup="menu" aria-expanded="false" data-state="closed"><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg><!--]--></button><!--v-if--><!--]--><!--]--><!--]--><!--]--></div></div></div></div><div class="flex-1 page-body" data-source-file="src/components/inspiration_board_manager/InspirationBoardManager.vue" data-source-line-start="127" data-source-line-end="150"><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="28" data-source-line-end="103"><!--[--><div class="group relative overflow-hidden rounded-lg border border-border surface-raised artwork-card-hover flex flex-col h-full cursor-pointer" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="29" data-source-line-end="102"><div class="relative aspect-[4/5] overflow-hidden bg-muted" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="36" data-source-line-end="71"><img src="https://spark-builder.s3.cn-north-1.amazonaws.com.cn/image/2026/4/13/b361e792-d513-455e-8e1c-48973b33ddd2.jpeg" alt="晨雾中的川西山脊" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="37" data-source-line-end="42"><div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="45" data-source-line-end="70"><div class="flex justify-end" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="46" data-source-line-end="56"><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;amp;_svg]:pointer-events-none [&amp;amp;_svg]:size-4 [&amp;amp;_svg]:shrink-0 hover:text-accent-foreground h-8 w-8 rounded-full bg-background/20 backdrop-blur-md hover:bg-destructive/80 text-white transition-colors" title="从灵感板移除" data-source-file="src/components/ui/button/Button.vue" data-source-line-start="21" data-source-line-end="27"><!--[--><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><!--]--></button></div><div class="space-y-2" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="59" data-source-line-end="69"><div class="flex flex-wrap gap-1" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="60" data-source-line-end="65"><span class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono bg-black/40 text-white/90 rounded" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="61" data-source-line-end="64"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36" class="lucide lucide-tag-icon lucide-tag"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"></path><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle></svg> 风光摄影</span></div><p class="text-xs text-white/90 line-clamp-2 italic" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="66" data-source-line-end="68"> "山脊层次很适合作为晨雾学习参考。" </p></div></div></div><div class="card-padding flex flex-col flex-1 gap-2" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="74" data-source-line-end="101"><h3 class="text-item-title truncate font-bold group-hover:text-primary transition-colors" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="75" data-source-line-end="77">晨雾中的川西山脊</h3><div class="flex items-center gap-1.5 mb-auto" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="79" data-source-line-end="86"><div class="w-4 h-4 rounded-full bg-muted flex items-center justify-center overflow-hidden" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="80" data-source-line-end="82"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide text-muted-foreground lucide-user-icon lucide-user text-muted-foreground" data-source-file="src/components/common/SafeIcon.vue" data-source-line-start="30" data-source-line-end="36"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div><span class="text-caption text-muted-foreground truncate" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="83" data-source-line-end="85">洛川</span></div><div class="flex flex-wrap gap-1 pt-2 border-t border-border/30" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="89" data-source-line-end="100"><!--[--><span class="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary/80 border border-primary/20" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="90" data-source-line-end="96">晨雾</span><span class="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary/80 border border-primary/20" data-source-file="src/components/inspiration_board_manager/BoardContentGrid.vue" data-source-line-start="90" data-source-line-end="96">山地</span><!--]--><!----></div></div></div><!--]--></div></div><!--[--><!--[--><!--v-if--><!--]--><!--]--><!--[--><!--[--><!--v-if--><!--]--><!--]--><!--[--><!--[--><!--v-if--><!--]--><!--]--><!--[--><!--[--><!--[--><!--v-if--><!--]--><!--]--><!--]--></div><!--astro:end--></astro-island>
+  </main>
+
+    </main>
+    <footer data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="21" data-source-line-end="38" class="border-t border-border py-12 bg-secondary/20">
+      <div data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="22" data-source-line-end="37" class="page-container">
+        <div data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="23" data-source-line-end="36" class="flex flex-col md:flex-row justify-between items-center gap-8">
+          <div data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="24" data-source-line-end="29" class="flex items-center gap-2">
+            <div data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="25" data-source-line-end="27" class="w-6 h-6 rounded bg-primary/50 flex items-center justify-center">
+              <span data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="26" data-source-line-end="26" class="text-xs font-bold">LC</span>
+            </div>
+            <span data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="28" data-source-line-end="28" class="text-lg font-bold tracking-tighter">LENS<span class="text-primary">CRAFT</span></span>
+          </div>
+          <div data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="30" data-source-line-end="34" class="flex gap-8 text-sm text-muted-foreground">
+            <a data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="31" data-source-line-end="31" href="./home-dashboard.html" class="hover:text-primary transition-colors">关于我们</a>
+            <a data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="32" data-source-line-end="32" href="./category-gallery.html" class="hover:text-primary transition-colors">版权说明</a>
+            <a data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="33" data-source-line-end="33" href="./management-dashboard.html" class="hover:text-primary transition-colors">加入摄影师</a>
+          </div>
+          <p data-source-file="src/layouts/StandardLayout.astro" data-source-line-start="35" data-source-line-end="35" class="text-xs text-muted-foreground">© 2026 LensCraft Photography Community. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+    <astro-island uid="Z1rXJ5e" prefix="s2" component-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/119045/sonner.BJPJiwk-.js" component-export="Toaster" renderer-url="https://uxbot-prod-public.s3.cn-north-1.amazonaws.com.cn/html/119045/client.BSWFYnr5.js" props="{}" ssr="" client="load" opts="{&amp;quot;name&amp;quot;:&amp;quot;Toaster&amp;quot;,&amp;quot;value&amp;quot;:true}" await-children=""><!--[--><!-- Remove item from normal navigation flow, only available via hotkey --><section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false"><!--[--><ol data-sonner-toaster="" data-sonner-theme="light" class="toaster group" dir="ltr" tabindex="-1" data-theme="light" data-rich-colors="false" data-y-position="bottom" data-x-position="right" style="--front-toast-height:0px;--width:356px;--gap:14px;--offset-top:24px;--offset-right:24px;--offset-bottom:24px;--offset-left:24px;--mobile-offset-top:16px;--mobile-offset-right:16px;--mobile-offset-bottom:16px;--mobile-offset-left:16px;" data-source-file="src/components/ui/sonner/Sonner.vue" data-source-line-start="9" data-source-line-end="22"><!--[--><!--]--></ol><!--]--></section><!--]--><!--astro:end--></astro-island>
+  <script>
+    const originalBack = window.history.back
+    const originalForward = window.history.forward
+    const originalGo = window.history.go
+    function isValidNavigation(){
+      if(!window.parent.history.state.back || !window.parent.history.state.back.startsWith(&#39;/designPage&#39;)){
+        return false
+      }
+      return true
+    }
+    window.history.back = function(...args) {
+      if(!isValidNavigation()){
+        return
+      }
+      return originalBack.apply(this, args);
+    };
+
+    window.history.forward = function(...args) {
+      if(!isValidNavigation()){
+        return
+      }
+      return originalForward.apply(this, args);
+    };
+
+    window.history.go = function(...args) {
+      if(!isValidNavigation()){
+        return
+      }
+      return originalGo.apply(this, args);
+    };
+  </script></body></html>'></iframe>
+                    </div>
+                  </div>
+
+                </body>
+                </html>
+            
